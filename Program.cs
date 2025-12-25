@@ -36,7 +36,7 @@ builder.Services
             )
         };
     });
-
+builder.Services.AddHttpContextAccessor();
 builder.Services.AddAuthorization();
 builder.Services.AddOpenApi();
 var app = builder.Build();
