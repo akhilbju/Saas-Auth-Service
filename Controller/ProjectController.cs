@@ -102,6 +102,7 @@ namespace Saas_Auth_Service.Controller
                 int skip = (pageNumber - 1) * request.RowsPerPage;
 
                 var projects = await query
+                    .Include(p => p.TeamMembers)
                     .Skip(skip)
                     .Take(request.RowsPerPage)
                     .ToListAsync();
