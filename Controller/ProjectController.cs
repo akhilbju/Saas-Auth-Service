@@ -1,4 +1,7 @@
 using System.Security.Claims;
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -31,12 +34,18 @@ namespace Saas_Auth_Service.Controller
         /// </summary>
         private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public ProjectController(IJwtSettings jwtSettings, IPasswordHasherService passwordHasherService, AppDbContext dbContext, IHttpContextAccessor httpContextAccessor)
+        /// <summary>
+        /// Cache Service
+        /// </summary>
+        private readonly ICacheService _cacheService;
+
+        public ProjectController(IJwtSettings jwtSettings, IPasswordHasherService passwordHasherService, AppDbContext dbContext, IHttpContextAccessor httpContextAccessor, ICacheService cacheService)
         {
             _jwtSettings = jwtSettings;
             _passwordHasherService = passwordHasherService;
             _dbContext = dbContext;
             _httpContextAccessor = httpContextAccessor;
+            _cacheService = cacheService;
         }
 
         #region  public methods
@@ -71,22 +80,35 @@ namespace Saas_Auth_Service.Controller
         }
 
         [HttpPost]
-        public GetAllProjects GetProjects(GetProjectRequest request)
+        public async Task<GetAllProjects> GetProjectsAsync(GetProjectRequest request)
         {
-            var response = new GetAllProjects();
-            var userId = Convert.ToInt32(_httpContextAccessor.HttpContext!.User.FindFirstValue(ClaimTypes.NameIdentifier));
-            IQueryable<Project> query = _dbContext.Projects.AsQueryable();
-            if (!string.IsNullOrEmpty(request.ProjectName))
+            var keyRaw = JsonSerializer.Serialize(request);
+            var cacheKey = "projects:" + Convert.ToHexString(
+                SHA256.HashData(Encoding.UTF8.GetBytes(keyRaw)));
+
+            return await _cacheService.GetOrCreateAsync(cacheKey, async () =>
             {
-                query = query.Where(x => EF.Functions.Like(x.Name, $"%{request.ProjectName}%"));
-            }
-            int pageNumber = request.PageNumber <= 0 ? 1 : request.PageNumber;
-            int skip = (pageNumber - 1) * request.RowsPerPage;
-            var projects = query.Skip(skip).Take(request.RowsPerPage).ToList();
-            response.Count = projects.Count;
-            foreach (var project in projects)
-            {
-                var projectDto = new ProjectResponse
+                var response = new GetAllProjects();
+
+                IQueryable<Project> query = _dbContext.Projects.AsQueryable();
+
+                if (!string.IsNullOrWhiteSpace(request.ProjectName))
+                {
+                    query = query.Where(x =>
+                        EF.Functions.Like(x.Name, $"%{request.ProjectName}%"));
+                }
+
+                int pageNumber = request.PageNumber <= 0 ? 1 : request.PageNumber;
+                int skip = (pageNumber - 1) * request.RowsPerPage;
+
+                var projects = await query
+                    .Skip(skip)
+                    .Take(request.RowsPerPage)
+                    .ToListAsync();
+
+                response.Count = projects.Count;
+
+                response.Projects = projects.Select(project => new ProjectResponse
                 {
                     Id = project.Id,
                     Name = project.Name,
@@ -96,11 +118,12 @@ namespace Saas_Auth_Service.Controller
                         Id = tm.Id,
                         Username = tm.Username,
                         Email = tm.Email,
-                    }).ToList(),
-                };
-                response.Projects.Add(projectDto);
-            }
-            return response;
+                    }).ToList()
+                }).ToList();
+
+                return response;
+
+            }, expirationInMinutes: 3);
         }
         #endregion
 

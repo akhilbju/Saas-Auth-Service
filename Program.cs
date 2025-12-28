@@ -7,7 +7,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer(); 
 builder.Services.AddSwaggerGen();
-
+builder.Services.AddMemoryCache();
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("Default")));
 
@@ -15,6 +15,7 @@ builder.Services.Configure<JwtConfigurationModel>(
     builder.Configuration.GetSection("Jwt"));
 
 builder.Services.AddScoped<IJwtSettings, JwtSettings>();
+builder.Services.AddScoped<ICacheService, CacheService>();
 builder.Services.AddScoped<IPasswordHasherService, PasswordHasherService>();
 
 var jwtConfig = builder.Configuration.GetSection("Jwt").Get<JwtConfigurationModel>()!;
