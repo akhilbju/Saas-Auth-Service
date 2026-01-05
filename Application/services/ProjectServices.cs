@@ -131,6 +131,7 @@ public class ProjectServices : IProjectServices
             Status = request.Status,
             IsDefault = request.IsDefault,
             ProjectId = request.ProjectId,
+            Position = request.Position,
             Project = project,
         };
         _projectStatusRepo.AddStatus(newStatus);
