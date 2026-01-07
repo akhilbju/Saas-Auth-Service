@@ -7,17 +7,22 @@ public class TaskService : ITaskService
     private readonly ITaskRepository _taskRepository;
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly ICacheService _cacheService;
-
     private readonly ITaskHistoryRepository _taskHistoryRepository;
+    private readonly IProjectStatusRepository _statusRepository;
+    private readonly IUserRepository _userRepository;
+
 
     public TaskService(IProjectRepository projectRepository,
-                       ITaskRepository taskRepository, IHttpContextAccessor httpContextAccessor, ICacheService cacheService, ITaskHistoryRepository taskHistoryRepository)
+                       ITaskRepository taskRepository, IHttpContextAccessor httpContextAccessor, ICacheService cacheService, ITaskHistoryRepository taskHistoryRepository,
+                       IProjectStatusRepository statusRepository,IUserRepository userRepository)
     {
         _projectRepository = projectRepository;
         _taskRepository = taskRepository;
         _httpContextAccessor = httpContextAccessor;
         _cacheService = cacheService;
         _taskHistoryRepository = taskHistoryRepository;
+        _projectRepository = projectRepository;
+        _userRepository = userRepository;
     }
 
     public Response CreateTask(CreateTaskRequest request)
@@ -106,5 +111,23 @@ public class TaskService : ITaskService
         return response;
     }
 
+    public List<GetStatusHistory> GetStatusHistoryofTask(int TaskId)
+    {
+        var response = new List<GetStatusHistory>();
+        var histories = _taskHistoryRepository.GetStatusHistoryOfTask(TaskId);
+        foreach(var history in histories)
+        {
+            response.Add(new GetStatusHistory()
+            {
+                DateTime = history.ChangedAt,
+                FromStatusId = history.FromStatusId,
+                ToStatusId = history.ToStatusId,
+                FromStatusName = _statusRepository.FindStatus(history.FromStatusId).Status,
+                ToStatusName = _statusRepository.FindStatus(history.ToStatusId).Status,
+                UpdatedBy =  _userRepository.GetUserById(history.ChangedBy).Username
+            });
+        }
+        return response;
+    }
 
 }
