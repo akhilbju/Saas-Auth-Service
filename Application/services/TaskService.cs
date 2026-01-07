@@ -1,3 +1,4 @@
+using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 
 public class TaskService : ITaskService
@@ -90,7 +91,7 @@ public class TaskService : ITaskService
                 ToStatusId = (int)request.Status,
                 TaskId = task.TaskId,
                 ChangedAt = DateTime.UtcNow,
-                ChangedBy = Convert.ToInt32(_httpContextAccessor.HttpContext!.User.FindFirstValue(ClaimTypes.NameIdentifier)),
+                ChangedBy = Convert.ToInt32(_httpContextAccessor.HttpContext!.User.FindFirstValue(JwtRegisteredClaimNames.Sub)),
             };
             _taskHistoryRepository.AddHistory(newHistory);
             task.Status = (int)request.Status;
