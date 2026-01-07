@@ -7,13 +7,16 @@ public class TaskService : ITaskService
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly ICacheService _cacheService;
 
+    private readonly ITaskHistoryRepository _taskHistoryRepository;
+
     public TaskService(IProjectRepository projectRepository,
-                       ITaskRepository taskRepository, IHttpContextAccessor httpContextAccessor, ICacheService cacheService)
+                       ITaskRepository taskRepository, IHttpContextAccessor httpContextAccessor, ICacheService cacheService, ITaskHistoryRepository taskHistoryRepository)
     {
         _projectRepository = projectRepository;
         _taskRepository = taskRepository;
         _httpContextAccessor = httpContextAccessor;
         _cacheService = cacheService;
+        _taskHistoryRepository = taskHistoryRepository;
     }
 
     public Response CreateTask(CreateTaskRequest request)
@@ -72,20 +75,35 @@ public class TaskService : ITaskService
     {
         Response response = new();
         var task = this._taskRepository.GetTaskById(request.TaskId);
-        if(task == null)
+        if (task == null)
         {
             response.Message = "Task" + ErrorMessages.NotFound;
             return response;
         }
-        if(string.IsNullOrEmpty(request.TaskName)) task.Name = request.TaskName;
-        if(string.IsNullOrEmpty(request.Description)) task.Description = request.Description;
-        if(request.Status != null) task.Status = (int)request.Status;
-        if(request.Duration != null) task.Duration = (int)request.Duration;
+        if (string.IsNullOrEmpty(request.TaskName)) task.Name = request.TaskName;
+        if (string.IsNullOrEmpty(request.Description)) task.Description = request.Description;
+        if (request.Status != null)
+        {
+            TaskStatusHistory newHistory = new()
+            {
+                FromStatusId = task.Status,
+                ToStatusId = (int)request.Status,
+                TaskId = task.TaskId,
+                ChangedAt = DateTime.UtcNow,
+                ChangedBy = Convert.ToInt32(_httpContextAccessor.HttpContext!.User.FindFirstValue(ClaimTypes.NameIdentifier)),
+            };
+            _taskHistoryRepository.AddHistory(newHistory);
+            task.Status = (int)request.Status;
+
+
+        }
+        if (request.Duration != null) task.Duration = (int)request.Duration;
         task.AssignedTo = request.Assignees;
         _taskRepository.UpdateTask(task);
         response.IsSuccess = true;
         response.Message = "Task" + SuccessMessages.UpdateSuccess;
         return response;
     }
+
 
 }
