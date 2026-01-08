@@ -106,8 +106,9 @@ public class TaskService : ITaskService
         if (request.Duration != null) task.Duration = (int)request.Duration;
         task.AssignedTo = request.Assignees;
         _taskRepository.UpdateTask(task);
+        _cacheService.Remove($"getTasks_{task.ProjectId}");
         response.IsSuccess = true;
-        response.Message = "Task" + SuccessMessages.UpdateSuccess;
+        response.Message = "Task " + SuccessMessages.UpdateSuccess;
         return response;
     }
 
@@ -154,6 +155,7 @@ public class TaskService : ITaskService
         Response response = new();
         var task = _taskRepository.GetTaskById(taskId);
         _taskRepository.DeleteTask(task);
+        _cacheService.Remove($"getTasks_{task.ProjectId}");
         response.IsSuccess = true;
         return response;
     }
