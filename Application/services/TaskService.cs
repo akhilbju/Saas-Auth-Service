@@ -142,7 +142,7 @@ public class TaskService : ITaskService
                         ToStatusId = history.ToStatusId,
                         FromStatusName = fromStatus.Status,
                         ToStatusName = toStatus.Status,
-                        UpdatedBy = user.Username
+                        UpdatedBy = user?.Username
                     });
                 }
 
