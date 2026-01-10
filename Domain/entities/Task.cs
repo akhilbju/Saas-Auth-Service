@@ -15,5 +15,7 @@ public record class ProjectTask
     public int CreatedById { get; set; }
     public DateTime CreatedAt { get; set; }
     public ICollection<TaskStatusHistory> TaskHistories { get; set; }
+    public ICollection<Timelog> Timelogs { get; set; }
+
 
 }

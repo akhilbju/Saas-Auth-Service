@@ -14,6 +14,8 @@ public class AppDbContext : DbContext
     public DbSet<ProjectTask> ProjectTasks { get; set; }
     public DbSet<ProjectStatuses> Statuses { get; set; }
     public DbSet<TaskStatusHistory> TaskStatusHistories { get; set; }
+    public DbSet<Timelog> Timelogs { get; set; }
+
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -66,6 +68,12 @@ public class AppDbContext : DbContext
         .HasOne(th => th.Task)
         .WithMany(t => t.TaskHistories)
         .HasForeignKey(th => th.TaskId)
+        .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<Timelog>()
+        .HasOne(t => t.Task)
+        .WithMany(task => task.Timelogs)
+        .HasForeignKey(t => t.TaskId)
         .OnDelete(DeleteBehavior.Cascade);
     }
 

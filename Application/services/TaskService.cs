@@ -90,7 +90,7 @@ public class TaskService : ITaskService
         }
         if (!string.IsNullOrEmpty(request.TaskName)) task.Name = request.TaskName;
         if (!string.IsNullOrEmpty(request.Description)) task.Description = request.Description;
-        if (request.Status != null)
+        if (request.Status != null && request.Status != task.Status)
         {
             TaskStatusHistory newHistory = new()
             {
@@ -106,7 +106,8 @@ public class TaskService : ITaskService
         if (request.Duration != null) task.Duration = (int)request.Duration;
         task.AssignedTo = request.Assignees;
         _taskRepository.UpdateTask(task);
-        _cacheService.Remove($"getTasks_{task.TaskId}");
+        _cacheService.Remove($"getTasks_{task.ProjectId}");
+        _cacheService.Remove($"getTask_{task.TaskId}");
         response.IsSuccess = true;
         response.Message = "Task " + SuccessMessages.UpdateSuccess;
         return response;
